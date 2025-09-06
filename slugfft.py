@@ -165,5 +165,11 @@ if "__main__" == __name__:
   ts = numpy.arange(slugs.seconds,dtype=numpy.float64)
   vals = numpy.array([slugs.val(t) for t in ts])
 
+  if kwargs.get('dump-input-data',False):
+    for val in vals: print(val)
+
+  if kwargs.get('no-plot',False):
+    exit(0)
+
   ### Plot the time- and FFT-data
   plot(ts,vals,title)
