@@ -60,8 +60,6 @@ var
   kjhm  : Integer = 0;
   i : Integer;
 begin
-  WriteLn('High:',High(indata));
-  WriteLn('Low:',Low(indata));
   (* bit-reverse-copy(a, A) *)
   for i := 0 to 511 do begin
     Areal[i] := indata[ibrs[i]];
@@ -124,21 +122,62 @@ var
   fftmagn : array [0..511] of Myfloat;
   icount : Integer = 0;
   twopi : Myfloat = 6.283185307179586;
+  F : Text;
 begin
   icount := 0;
-  while icount < 512 do begin
-    ReadLn(indata[icount]);
-    icount := icount + 1;
+
+(* ****************************************************************** *)
+(*                                                                    *)
+(* Usage:                                                             *)
+(*                                                                    *)
+(*   (i) Generate test data intenally; write input data to file x.x   *)
+(*       ./fft > x.x                                                  *)
+(*                                                                    *)
+(*   (ii) Read 512 time-domain data from file, one datum per line     *)
+(*    ./fft ../default_data.dat                                       *)
+(*                                                                    *)
+(* Output format:                                                     *)
+(* - [offset,value] pairs                                             *)
+(* - one pair per line                                                *)
+(* - space delimited                                                  *)
+(* - offset range is [0,N-1]                                          *)
+(* - First N pairs are time-domain input data,                        *)
+(* - followed by N pairs of frequency-domain data (FFT)               *)
+(* - See example below; ### and text that follow are comments         *)
+(*                                                                    *)
+(* 0  1.0000000000000000E+000   ### Time-domain data, 1st input value *)
+(* 1  1.6872781844821536E+000   ### 2nd input value                   *)
+(* ...                          ### etc.                              *)
+(* 511 -2.7306462210913929E-001 ### Last input value                  *)
+(* 0  2.8421709430404007E-014   ### Result data, first FFT value      *)
+(* 1  1.8012239161397711E-014   ### 2nd FFT value                     *)
+(* ...                          ### etc.                              *)
+(* 511  1.8012239161392905E-014 ### Last FFT value                    *)
+(*                                                                    *)
+(* ****************************************************************** *)
+
+  if ParamCount > 0 then begin
+    (* Get file name from command line parameter 1 *)
+    WriteLn(StdErr, 'Reading data from file [', ParamStr(1), ']...');
+    Assign(F, ParamStr(1));
+    Reset(F);
+    while icount < 512 do begin
+      ReadLn(F,indata[icount]);
+      WriteLn(icount,' ',indata[icount]);
+      icount := icount + 1;
+    end;
+  end
+  else begin
+    (* No command line parameters; generate data *)
+    WriteLn(StdErr, 'Generating test data...');
+    while icount < 512 do begin
+      indata[icount] := (10.0 * sin(icount * twopi / (512.0 /  8.0)))
+                      + ( 1.0 * cos(icount * twopi / (512.0 / 64.0)));
+      WriteLn(icount,' ',indata[icount]);
+      icount := icount + 1;
+    end;
   end;
-  (*
-  icount := 0;
-  while icount < 512 do begin
-    indata[icount] := (10.0 * sin(icount * twopi / (512.0 /  8.0)))
-                    + ( 1.0 * cos(icount * twopi / (512.0 / 64.0)));
-    WriteLn(icount,' ',indata[icount]);
-    icount := icount + 1;
-  end;
-  *)
+
   fft(indata, fftmagn);
   icount := 0;
   while icount < 512 do begin
