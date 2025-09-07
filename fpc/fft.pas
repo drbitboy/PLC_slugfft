@@ -131,7 +131,7 @@ begin
 (*                                                                    *)
 (* Usage:                                                             *)
 (*                                                                    *)
-(*   (i) Generate test data intenally; write input data to file x.x   *)
+(*   (i) Generate test data internally; write input data to file x.x  *)
 (*       ./fft > x.x                                                  *)
 (*                                                                    *)
 (*   (ii) Read 512 time-domain data from file, one datum per line     *)
