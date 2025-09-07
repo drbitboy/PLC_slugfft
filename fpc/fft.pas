@@ -45,6 +45,8 @@ var
   ilim    : Integer;                   (* loop contol                 *)
 begin
 
+  (* Start Cooley-Tukey:  bit-reversal; divide and conquer *)
+
   (* bit-reverse-copy(a, A); indices stored in array ibrs[0..511]     *)
   ibrs[0] := 0;   (* Seed first index; reversal of index 0 is 0       *)
   iadd := 512;    (* Seed difference to add                           *)
@@ -66,13 +68,12 @@ begin
   WMreal := -1.0; (*  cos(-2PI/m) =  cos(-2PI/2) =  cos(-PI) = -1.0 *)
   WMimag := 0.0;  (* isin(-2PI/m) = isin(-2PI/2) = isin(-PI) =  0.0 *)
 
-  (* Cooley-Tukey:  divide and conquer *)
   (* for s = 1 to log(n) : base-2 logarithm *)
   halfm := 1;
   while halfm < 512 do begin
     (* m <= 2^s *)
     m := halfm shl 1;
-    (* for k = 0 to n=1 by m : part 1 of 2 *)
+    (* for k = 0 to n-1 by m : part 1 of 2 *)
     kstep := 0;
     while kstep < 512 do begin
       (* w <= 1 *)
@@ -101,15 +102,15 @@ begin
       (* for k = 0 to n=1 by m : part 2 of 2 *)
       kstep := kstep + m
     end;
-    (* Prepare for next pass through the outer while loop *)
-    (* (i) double halfm (m/2), which will double m on next pass *)
-    (* (ii) wM <= exp(-2PIi/m) : part 2 of 2, with doubled m *)
+    (* Prepare for next pass through the outer while loop             *)
+    (* (i) double halfm (m/2), which will double m on next pass start *)
+    (* (ii) wM <= exp(-2PIi/m) : part 2 of 2, with doubled m          *)
     halfm := m;
     WMimag := sqrt((1.0 - WMreal) / 2.0);
     WMreal := sqrt((1.0 + WMreal) / 2.0);
-  end;
+  end;                                         (* End of Cooley-Tukey *)
 
-  (* Convert complex data to magnitude *)
+  (* complex DFT => output magnitudes N.B. not part of Cooley-Tukey *)
   for kj := 0 to 511 do begin
     fftmagn[kj] := sqrt((Areal[kj] * Areal[kj]) + (Aimag[kj] * Aimag[kj]));
   end
