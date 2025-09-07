@@ -102,9 +102,9 @@ begin
       kstep := kstep + m
     end;
     (* Prepare for next pass through the outer while loop *)
-    (* - double m/2 to m, which will double m on next pass *)
+    (* (i) double halfm (m/2), which will double m on next pass *)
+    (* (ii) wM <= exp(-2PIi/m) : part 2 of 2, with doubled m *)
     halfm := m;
-    (* - wM <= exp(-2PIi/m) : part 2 of 2 *)
     WMimag := sqrt((1.0 - WMreal) / 2.0);
     WMreal := sqrt((1.0 + WMreal) / 2.0);
   end;
