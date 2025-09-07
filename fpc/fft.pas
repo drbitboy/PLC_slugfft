@@ -38,11 +38,11 @@ var
 
   (* The rest are used in the bit reversal algorithm *)
 
-  ibrs    : array [0..511] of Integer; (* source index of copy value  *)
-  i       : Integer;                   (* target index of copy value  *)
-  ioffset : Integer;                   (* offset to previous index    *)
-  iadd    : Integer;                   (* index difference            *)
-  ilim    : Integer;                   (* loop contol                 *)
+  ibrs : array [0..511] of Integer; (* Source indices of copied value *)
+  itrg : Integer;                   (* Target index into ibrs         *)
+  isrc : Integer;                   (* Source index to which to add   *)
+  iadd : Integer;                   (* index difference               *)
+  ilim : Integer;                   (* loop contol                    *)
 begin
 
   (* Start Cooley-Tukey:  bit-reversal; divide and conquer *)
@@ -50,18 +50,18 @@ begin
   (* bit-reverse-copy(a, A); indices stored in array ibrs[0..511]     *)
   ibrs[0] := 0;   (* Seed first index; reversal of index 0 is 0       *)
   iadd := 512;    (* Seed difference to add                           *)
-  ioffset := 1;   (* Offset from previous index to which to add       *)
-  i := 1;         (* Start at ibrs[1], using i-offset and iadd        *)
+  itrg := 1;       (* Start at ibrs[1]                                *)
   while iadd > 1 do begin   (* Loop until next halved iadd would be 0 *)
-    iadd := iadd shr 1;     (* halve iadd i.e. 512=>256=>...=>1       *)
-    ilim := ioffset shl 1;  (* double offset for limit 1=>2=>...=>512 *)
-    while i < ilim do begin                  (* Loop from i to ilim-1 *)
-      ibrs[i] := ibrs[i - ioffset] + iadd;   (* Save source index     *)
-      Areal[i] := indata[ibrs[i]];           (* Copy real data        *)
-      Aimag[i] := 0.0;                       (* Zero out imag data    *)
-      i := i + 1;                            (* Next target           *)
+    iadd := iadd shr 1;     (* halve iadd i.e. =>256=>...=>1          *)
+    ilim := 512 Div iadd;   (* double limit =>2=>4=>...=>512          *)
+    isrc := 0;              (* Start source index at ibrs[0]          *)
+    while itrg < ilim do begin            (* Loop from itrg to ilim-1 *)
+      ibrs[itrg] := ibrs[isrc] + iadd;       (* Save target index     *)
+      Areal[itrg] := indata[ibrs[itrg]];     (* Copy real data        *)
+      Aimag[itrg] := 0.0;                    (* Zero out imag data    *)
+      isrc := isrc + 1;                      (* Next source index     *)
+      itrg := itrg + 1;                      (* Next target index     *)
     end;
-    ioffset := ilim;                         (* Double offset         *)
   end;
 
   (* Divide and conquer *)
