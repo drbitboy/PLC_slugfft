@@ -1,0 +1,124 @@
+FUNCTION "FFT" : Bool
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      indata : Array[0..511] of Real;
+      n : Int;
+   END_VAR
+
+   VAR_OUTPUT 
+      fftmagn : Array[0..511] of Real;
+   END_VAR
+
+   VAR_TEMP 
+      Areal : Array[0..511] of Real;
+      Aimag : Array[0..511] of Real;
+      Wreal : Real;
+      Wimag : Real;
+      WMreal : Real;
+      WMimag : Real;
+      Treal : Real;
+      Timag : Real;
+      Ureal : Real;
+      m : Int;
+      halfm : Int;
+      kstep : Int;
+      jincr : Int;
+      kj : Int;
+      kjhm : Int;
+      ibrs : Array[0..511] of Int;
+      itrg : Int;
+      isrc : Int;
+      iadd : Int;
+      ilim : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      U1 : UInt := 1;
+   END_VAR
+
+
+BEGIN
+	(* Check Inputs *)
+	"mm".fft_heartbeat0 := ("mm".fft_heartbeat0 + 1) AND 4095;
+	#FFT := FALSE;
+	IF NOT ENO THEN RETURN; END_IF;
+	IF #n < 2 THEN RETURN; END_IF;
+	IF #n > 512 THEN RETURN; END_IF;
+	IF (#n & (#n - 1)) <> 0 THEN RETURN; END_IF;
+	"mm".fft_heartbeat1 := ("mm".fft_heartbeat1 + 1) AND 4095;
+	
+	(* Start Cooley-Tukey:  bit-reversal; divide and conquer *)
+	
+	(* bit-reverse-copy(a, A); indices stored in array ibrs[0..511]     *)
+	#ibrs[0] := 0;  (* Seed first index; reversal of index 0 is 0       *)
+	#iadd := #n;    (* Seed difference to add                           *)
+	#itrg := 1;      (* Start at ibrs[1]                                *)
+	WHILE #iadd > 1 DO        (* Loop until next halved iadd would be 0 *)
+	  #iadd := #iadd / 2;     (* halve iadd i.e. =>256=>...=>1          *)
+	  #ilim := #n / #iadd;    (* double limit =>2=>4=>...=>512          *)
+	  #isrc := 0;             (* Start source index at ibrs[0]          *)
+	  WHILE #itrg < #ilim DO                (* Loop from itrg to ilim-1 *)
+	    #ibrs[#itrg] := #ibrs[#isrc] + #iadd;  (* Save target index     *)
+	    #Areal[#itrg] := #indata[#ibrs[#itrg]];(* Copy real data        *)
+	    #Aimag[#itrg] := 0.0;                  (* Zero out imag data    *)
+	    #isrc := #isrc + 1;                    (* Next source index     *)
+	    #itrg := #itrg + 1;                    (* Next target index     *)
+	  END_WHILE;
+	END_WHILE;
+	
+	(* Divide and conquer *)
+	
+	(* wM <= exp(-2PIi/m) : part 1 of 2; initialization when m is 2 *)
+	#WMreal := -1.0; (*  cos(-2PI/m) =  cos(-2PI/2) =  cos(-PI) = -1.0 *)
+	#WMimag := 0.0;  (* isin(-2PI/m) = isin(-2PI/2) = isin(-PI) =  0.0 *)
+	
+	(* for s = 1 to log(n) : base-2 logarithm *)
+	#halfm := 1;
+	WHILE #halfm < #n DO
+	  (* m <= 2^s *)
+	  #m := #halfm * 2;
+	  (* for k = 0 to n-1 by m : part 1 of 2 *)
+	  #kstep := 0;
+	  WHILE #kstep < #n DO
+	    (* w <= 1 *)
+	    #Wreal := 1.0;
+	    #Wimag := 0.0;
+	    (* for j = 0 to m/2-1 *)
+	    FOR #jincr := 0 TO (#halfm-1) DO 
+	      #kj := #kstep + #jincr;
+	      #kjhm := #kj + #halfm;
+	      (* t <= w * A[k+j+m/2] *)
+	      (* u <= A[k+j] : not needed because A[k+j] is last *)
+	      #Treal := (#Wreal * #Areal[#kjhm]) - (#Wimag * #Aimag[#kjhm]);
+	      #Timag := (#Wreal * #Aimag[#kjhm]) + (#Wimag * #Areal[#kjhm]);
+	      (* A[k+j+m/2] <= u - t : use A....[kj] instead of u *)
+	      #Areal[#kjhm] := #Areal[#kj] - #Treal;
+	      #Aimag[#kjhm] := #Aimag[#kj] - #Timag;
+	      (* A[k+j] <= u + t *)
+	      #Areal[#kj] := #Areal[#kj] + #Treal;
+	      #Aimag[#kj] := #Aimag[#kj] + #Timag;
+	      (* w <= w * wM : Ureal holds the new value of Wreal until the *)
+	      (*               calculation of Wimag using Wreal is complete *)
+	      #Ureal := (#Wreal * #WMreal) - (#Wimag * #WMimag);
+	      #Wimag := (#Wreal * #WMimag) + (#Wimag * #WMreal);
+	      #Wreal := #Ureal;
+	    END_FOR;
+	    (* for k = 0 to n=1 by m : part 2 of 2 *)
+	    #kstep := #kstep + #m;
+	  END_WHILE;
+	  (* Prepare for next pass through the outer while loop             *)
+	  (* (i) double halfm (m/2), which will double m on next pass start *)
+	  #halfm := #m;
+	  (* (ii) wM <= exp(-2PIi/m) : part 2 of 2, with doubled m          *)
+	  #WMimag := SQRT((1.0 - #WMreal) / 2.0);
+	  #WMreal := SQRT((1.0 + #WMreal) / 2.0);
+	END_WHILE;                                   (* End of Cooley-Tukey *)
+	
+	(* Convert complex DFT to magnitudes N.B. not part of Cooley-Tukey  *)
+	FOR #kj := 0 TO (#n-1) DO
+	    #fftmagn[#kj] := SQRT((#Areal[#kj] * #Areal[#kj]) + (#Aimag[#kj] * #Aimag[#kj]));
+	END_FOR;
+	
+	#FFT := TRUE;    (* Success *)
+END_FUNCTION
