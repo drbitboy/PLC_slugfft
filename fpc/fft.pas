@@ -11,66 +11,62 @@ type
 
 procedure fft(Var indata : array of Myfloat; Var fftmagn : array of Myfloat);
 var
-  ibrs : array [0..511] of Integer
-=(0,256,128,384,64,320,192,448,32,288,160,416,96,352,224,480
-,16,272,144,400,80,336,208,464,48,304,176,432,112,368,240,496
-,8,264,136,392,72,328,200,456,40,296,168,424,104,360,232,488
-,24,280,152,408,88,344,216,472,56,312,184,440,120,376,248,504
-,4,260,132,388,68,324,196,452,36,292,164,420,100,356,228,484
-,20,276,148,404,84,340,212,468,52,308,180,436,116,372,244,500
-,12,268,140,396,76,332,204,460,44,300,172,428,108,364,236,492
-,28,284,156,412,92,348,220,476,60,316,188,444,124,380,252,508
-,2,258,130,386,66,322,194,450,34,290,162,418,98,354,226,482
-,18,274,146,402,82,338,210,466,50,306,178,434,114,370,242,498
-,10,266,138,394,74,330,202,458,42,298,170,426,106,362,234,490
-,26,282,154,410,90,346,218,474,58,314,186,442,122,378,250,506
-,6,262,134,390,70,326,198,454,38,294,166,422,102,358,230,486
-,22,278,150,406,86,342,214,470,54,310,182,438,118,374,246,502
-,14,270,142,398,78,334,206,462,46,302,174,430,110,366,238,494
-,30,286,158,414,94,350,222,478,62,318,190,446,126,382,254,510
-,1,257,129,385,65,321,193,449,33,289,161,417,97,353,225,481
-,17,273,145,401,81,337,209,465,49,305,177,433,113,369,241,497
-,9,265,137,393,73,329,201,457,41,297,169,425,105,361,233,489
-,25,281,153,409,89,345,217,473,57,313,185,441,121,377,249,505
-,5,261,133,389,69,325,197,453,37,293,165,421,101,357,229,485
-,21,277,149,405,85,341,213,469,53,309,181,437,117,373,245,501
-,13,269,141,397,77,333,205,461,45,301,173,429,109,365,237,493
-,29,285,157,413,93,349,221,477,61,317,189,445,125,381,253,509
-,3,259,131,387,67,323,195,451,35,291,163,419,99,355,227,483
-,19,275,147,403,83,339,211,467,51,307,179,435,115,371,243,499
-,11,267,139,395,75,331,203,459,43,299,171,427,107,363,235,491
-,27,283,155,411,91,347,219,475,59,315,187,443,123,379,251,507
-,7,263,135,391,71,327,199,455,39,295,167,423,103,359,231,487
-,23,279,151,407,87,343,215,471,55,311,183,439,119,375,247,503
-,15,271,143,399,79,335,207,463,47,303,175,431,111,367,239,495
-,31,287,159,415,95,351,223,479,63,319,191,447,127,383,255,511);
-  Areal,Aimag : array [0..511] of Myfloat;
-  Wreal : Myfloat = -1.0;
-  Wimag : Myfloat = 0.0;
-  WMreal : Myfloat = -1.0;
-  WMimag : Myfloat = 0.0;
-  Treal : Myfloat = 0.0;
-  Timag : Myfloat = 0.0;
-  Xreal : Myfloat = 0.0;
-  m     : Integer = 0;
-  halfm : Integer = 0;
-  kstep : Integer = 0;
-  jincr : Integer = 0;
-  kj    : Integer = 0;
-  kjhm  : Integer = 0;
-  i : Integer;
+  (* Cooley-Tukey Wiki variables                                      *)
+  (*                                                                  *)
+  (* Argument parameters (above):                                     *)
+  (*                                                                  *)
+  (*   indata       a, input, real only                               *)
+  (*   fftmagn      Magnitudes of A, output, real only                *)
+  (*                                                                  *)
+  (* Local variables:                                                 *)
+  (*                                                                  *)
+  Areal  : array [0..511] of Myfloat; (* A, DFT, real components      *)
+  Aimag  : array [0..511] of Myfloat; (* A, imag(inary) components    *)
+  Wreal  : Myfloat = -1.0;            (* omega, real                  *)
+  Wimag  : Myfloat = 0.0;             (* omega, imag(inary)           *)
+  WMreal : Myfloat = -1.0;            (* omega-sub-m, real            *)
+  WMimag : Myfloat = 0.0;             (* omega-sub-m, imag            *)
+  Treal  : Myfloat = 0.0;             (* t, real                      *)
+  Timag  : Myfloat = 0.0;             (* t, imag                      *)
+  Ureal  : Myfloat = 0.0;             (* u, real (imag not needed)    *)
+  m      : Integer = 0;               (* m, 2**s                      *)
+  halfm  : Integer = 0;               (* m/2                          *)
+  kstep  : Integer = 0;               (* k, steps through A by m      *)
+  jincr  : Integer = 0;               (* j, increments from 0 to m/2  *)
+  kj     : Integer = 0;               (* k + j                        *)
+  kjhm   : Integer = 0;               (* k + j + m/2                  *)
+
+  (* The rest are used in the bit reversal algorithm *)
+
+  ibrs    : array [0..511] of Integer; (* source index of copy value  *)
+  i       : Integer;                   (* target index of copy value  *)
+  ioffset : Integer;                   (* offset to previous index    *)
+  iadd    : Integer;                   (* index difference            *)
+  ilim    : Integer;                   (* loop contol                 *)
 begin
-  (* bit-reverse-copy(a, A) *)
-  for i := 0 to 511 do begin
-    Areal[i] := indata[ibrs[i]];
-    Aimag[i] := 0.0;
+
+  (* bit-reverse-copy(a, A); indices stored in array ibrs[0..511]     *)
+  ibrs[0] := 0;   (* Seed first index; reversal of index 0 is 0       *)
+  iadd := 512;    (* Seed difference to add                           *)
+  ioffset := 1;   (* Offset from previous index to which to add       *)
+  i := 1;         (* Start at ibrs[1], using i-offset and iadd        *)
+  while iadd > 1 do begin   (* Loop until next halved iadd would be 0 *)
+    iadd := iadd shr 1;     (* halve iadd i.e. 512=>256=>...=>1       *)
+    ilim := ioffset shl 1;  (* double offset for limit 1=>2=>...=>512 *)
+    while i < ilim do begin                  (* Loop from i to ilim-1 *)
+      ibrs[i] := ibrs[i - ioffset] + iadd;   (* Save source index     *)
+      Areal[i] := indata[ibrs[i]];           (* Copy real data        *)
+      Aimag[i] := 0.0;                       (* Zero out imag data    *)
+      i := i + 1;                            (* Next target           *)
+    end;
+    ioffset := ilim;                         (* Double offset         *)
   end;
 
   (* wM <= exp(-2PIi/m) : part 1 of 2; initialization when m is 2 *)
-  WMreal := -1.0;
-  WMimag := 0.0;
+  WMreal := -1.0; (*  cos(-2PI/m) =  cos(-2PI/2) =  cos(-PI) = -1.0 *)
+  WMimag := 0.0;  (* isin(-2PI/m) = isin(-2PI/2) = isin(-PI) =  0.0 *)
 
-  (* Divide and conquer *)
+  (* Cooley-Tukey:  divide and conquer *)
   (* for s = 1 to log(n) : base-2 logarithm *)
   halfm := 1;
   while halfm < 512 do begin
@@ -96,11 +92,11 @@ begin
         (* A[k+j] <= u + t *)
         Areal[kj] := Areal[kj] + Treal;
         Aimag[kj] := Aimag[kj] + Timag;
-        (* w <= w * wM : Xreal holds the new value of Wreal until the *)
+        (* w <= w * wM : Ureal holds the new value of Wreal until the *)
         (*               calculation of Wimag using Wreal is complete *)
-        Xreal := (Wreal * WMreal) - (Wimag * WMimag);
+        Ureal := (Wreal * WMreal) - (Wimag * WMimag);
         Wimag := (Wreal * WMimag) + (Wimag * WMreal);
-        Wreal := Xreal;
+        Wreal := Ureal;
       end;
       (* for k = 0 to n=1 by m : part 2 of 2 *)
       kstep := kstep + m
@@ -112,6 +108,8 @@ begin
     WMimag := sqrt((1.0 - WMreal) / 2.0);
     WMreal := sqrt((1.0 + WMreal) / 2.0);
   end;
+
+  (* Convert complex data to magnitude *)
   for kj := 0 to 511 do begin
     fftmagn[kj] := sqrt((Areal[kj] * Areal[kj]) + (Aimag[kj] * Aimag[kj]));
   end
