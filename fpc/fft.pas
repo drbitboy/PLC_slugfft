@@ -115,7 +115,7 @@ begin
   (* Convert complex DFT to magnitudes N.B. not part of Cooley-Tukey  *)
   for kj := 0 to 511 do begin
     fftmagn[kj] := sqrt((Areal[kj] * Areal[kj]) + (Aimag[kj] * Aimag[kj]));
-  end
+  end;
 end;
 
 var
