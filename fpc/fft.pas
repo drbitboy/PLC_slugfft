@@ -106,13 +106,13 @@ begin
     end;
     (* Prepare for next pass through the outer while loop             *)
     (* (i) double halfm (m/2), which will double m on next pass start *)
-    (* (ii) wM <= exp(-2PIi/m) : part 2 of 2, with doubled m          *)
     halfm := m;
+    (* (ii) wM <= exp(-2PIi/m) : part 2 of 2, with doubled m          *)
     WMimag := sqrt((1.0 - WMreal) / 2.0);
     WMreal := sqrt((1.0 + WMreal) / 2.0);
   end;                                         (* End of Cooley-Tukey *)
 
-  (* complex DFT => output magnitudes N.B. not part of Cooley-Tukey *)
+  (* Convert complex DFT to magnitudes N.B. not part of Cooley-Tukey  *)
   for kj := 0 to 511 do begin
     fftmagn[kj] := sqrt((Areal[kj] * Areal[kj]) + (Aimag[kj] * Aimag[kj]));
   end
