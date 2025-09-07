@@ -102,7 +102,7 @@ begin
         Wreal := Ureal;
       end;
       (* for k = 0 to n=1 by m : part 2 of 2 *)
-      kstep := kstep + m
+      kstep := kstep + m;
     end;
     (* Prepare for next pass through the outer while loop             *)
     (* (i) double halfm (m/2), which will double m on next pass start *)
