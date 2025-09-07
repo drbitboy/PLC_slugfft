@@ -1,11 +1,11 @@
-(* fast Fourier Transform *)
-(* Cooley-Tukey factorization of the discrete Fourier Transform *)
-(* from: *)
+(* fast Fourier Transform                                             *)
+(* Cooley-Tukey factorization of the discrete Fourier Transform       *)
+(* from:                                                              *)
 (*   https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm *)
-(* Simplifications: *)
-(* - 512-element input data array *)
-(* - Real-only input and output *)
-(*   - Output result contains magnitude data only; no phase data *)
+(* Simplifications:                                                   *)
+(* - 512-element input data array                                     *)
+(* - Real-only input and output                                       *)
+(*   - Output result contains magnitude data only; no phase data      *)
 type
   Myfloat = Real;
 
