@@ -64,6 +64,8 @@ begin
     ioffset := ilim;                         (* Double offset         *)
   end;
 
+  (* Divide and conquer *)
+
   (* wM <= exp(-2PIi/m) : part 1 of 2; initialization when m is 2 *)
   WMreal := -1.0; (*  cos(-2PI/m) =  cos(-2PI/2) =  cos(-PI) = -1.0 *)
   WMimag := 0.0;  (* isin(-2PI/m) = isin(-2PI/2) = isin(-PI) =  0.0 *)
