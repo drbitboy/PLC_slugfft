@@ -47,21 +47,19 @@ begin
 
   (* Start Cooley-Tukey:  bit-reversal; divide and conquer *)
 
-  (* bit-reverse-copy(a, A); indices stored in array ibrs[0..511]     *)
-  ibrs[0] := 0;   (* Seed first index; reversal of index 0 is 0       *)
-  iadd := 512;    (* Seed difference to add                           *)
-  itrg := 1;       (* Start at ibrs[1]                                *)
-  while iadd > 1 do begin   (* Loop until next halved iadd would be 0 *)
-    iadd := iadd shr 1;     (* halve iadd i.e. =>256=>...=>1          *)
-    ilim := 512 Div iadd;   (* double limit =>2=>4=>...=>512          *)
-    isrc := 0;              (* Start source index at ibrs[0]          *)
-    while itrg < ilim do begin            (* Loop from itrg to ilim-1 *)
-      ibrs[itrg] := ibrs[isrc] + iadd;       (* Save target index     *)
-      Areal[itrg] := indata[ibrs[itrg]];     (* Copy real data        *)
-      Aimag[itrg] := 0.0;                    (* Zero out imag data    *)
-      isrc := isrc + 1;                      (* Next source index     *)
-      itrg := itrg + 1;                      (* Next target index     *)
+  (* bit-reverse-copy(a, A); ibrs[0..511] stores bit-reversed indices *)
+  ibrs[0] := 0;   (* Seed ibrs[0]:  bit-reverse of itrg=0 is 0        *)
+  ilim := 1;      (* Initialize itrg limit trigger                    *)
+  for itrg := 1 to 511 do begin (* Start at ibrs[itrg=1]              *)
+    if itrg = ilim then begin   (* When itrg reaches trigger, then:   *)
+      isrc := 0;                (* - Reset source to ibrs[0]          *)
+      ilim := ilim + ilim;      (* - Double itrg limit trigger        *)
+      iadd := 512 Div ilim;     (* - Halve delta to add to ibrs[isrc] *)
     end;
+    ibrs[itrg] := ibrs[isrc] + iadd;     (* Save target reversed bits *)
+    isrc := isrc + 1;                    (* Increment source index    *)
+    Areal[itrg] := indata[ibrs[itrg]];   (* Copy real parameter data  *)
+    Aimag[itrg] := 0.0;                  (* Zero out imag data        *)
   end;
 
   (* Divide and conquer *)
