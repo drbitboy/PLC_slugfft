@@ -51,21 +51,19 @@ BEGIN
 	(* Start Cooley-Tukey:  bit-reversal; divide and conquer *)
 	
 	(* bit-reverse-copy(a, A); indices stored in array ibrs[0..511]     *)
-	#ibrs[0] := 0;  (* Seed first index; reversal of index 0 is 0       *)
-	#iadd := #n;    (* Seed difference to add                           *)
-	#itrg := 1;      (* Start at ibrs[1]                                *)
-	WHILE #iadd > 1 DO        (* Loop until next halved iadd would be 0 *)
-	  #iadd := #iadd / 2;     (* halve iadd i.e. =>256=>...=>1          *)
-	  #ilim := #n / #iadd;    (* double limit =>2=>4=>...=>512          *)
-	  #isrc := 0;             (* Start source index at ibrs[0]          *)
-	  WHILE #itrg < #ilim DO                (* Loop from itrg to ilim-1 *)
-	    #ibrs[#itrg] := #ibrs[#isrc] + #iadd;  (* Save target index     *)
-	    #Areal[#itrg] := #indata[#ibrs[#itrg]];(* Copy real data        *)
-	    #Aimag[#itrg] := 0.0;                  (* Zero out imag data    *)
-	    #isrc := #isrc + 1;                    (* Next source index     *)
-	    #itrg := #itrg + 1;                    (* Next target index     *)
-	  END_WHILE;
-	END_WHILE;
+	#ibrs[0] := 0;  (* Seed ibrs[0]:  bit-reverse of itrg=0 is 0        *)
+	#ilim := 1;     (* Initialize itrg limit trigger                    *)
+	FOR #itrg := 1 TO (n-1) DO    (* Start at ibrs[itrg=1]              *)
+	  IF #itrg = #ilim THEN       (* When itrg reaches trigger, then:   *)
+	    #isrc := 0;               (* - Reset source to ibrs[0]          *)
+	    #ilim := #ilim + #ilim;   (* - Double itrg limit trigger        *)
+	    #iadd := n / #ilim;       (* - Halve delta to add to ibrs[isrc] *)
+	  END_IF;
+	  #ibrs[itrg] := #ibrs[isrc] + #iadd;  (* Save target reversed bits *)
+	  #isrc := #isrc + 1;                  (* Increment source index    *)
+	  #Areal[itrg] := #indata[ibrs[itrg]]; (* Copy real parameter data  *)
+	  #Aimag[itrg] := 0.0;                 (* Zero out imag data        *)
+	END_FOR;
 	
 	(* Divide and conquer *)
 	
